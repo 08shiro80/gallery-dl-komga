@@ -130,6 +130,16 @@ def _parse_chapter_slug(slug):
     return major, minor
 
 
+def _labeled_content(page, label):
+    """Return the summary-content HTML matching a summary-heading label, or ""."""
+    m = re.search(
+        r'summary-heading[^>]*>\s*<[^>]+>\s*' + re.escape(label) +
+        r'\s*</[^>]+>\s*</div>\s*<div[^>]*class="summary-content[^"]*"[^>]*>'
+        r"(.*?)</div>",
+        page, re.I | re.S)
+    return m.group(1) if m else ""
+
+
 class MadaraExtractor(Extractor):
     """Base extractor for Madara WordPress manga sites"""
     basecategory = "madara"
@@ -162,12 +172,15 @@ class MadaraExtractor(Extractor):
             text.extr(page, 'class="artist-content">', "</div>")
         ).strip()
 
-        description = text.remove_html(
-            text.extr(page, 'class="summary__content', "</div>") or
-            text.extr(page, 'class="post-content_item">', "</div>")
-        ).strip()
+        summary = text.extr(page, 'class="summary__content', "</div>")
+        if summary:
+            summary = summary.partition(">")[2]
+        else:
+            summary = text.extr(page, 'class="post-content_item">', "</div>")
+        description = text.remove_html(summary).strip()
 
         status = text.remove_html(
+            _labeled_content(page, "Status") or
             text.extr(page, 'class="summary-content">', "</div>")
         ).strip()
 

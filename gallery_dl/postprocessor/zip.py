@@ -104,8 +104,12 @@ class ZipPP(PostProcessor):
         if os.path.isfile(self.tmp_path):
             try:
                 with zipfile.ZipFile(self.tmp_path, "r") as verify:
-                    if verify.namelist():
-                        os.replace(self.tmp_path, self.final_path)
+                    has_entries = bool(verify.namelist())
+                # Close the verify handle before renaming: on Windows os.replace()
+                # of a still-open file raises WinError 32 ("used by another process"),
+                # which left the .cbz.part unrenamed.
+                if has_entries:
+                    os.replace(self.tmp_path, self.final_path)
             except (zipfile.BadZipFile, OSError) as exc:
                 self.log.warning(
                     "Keeping %s for resume after verify failure: %s",

@@ -14,6 +14,7 @@ modules = {
     "compare",
     "directory",
     "exec",
+    "gigaviewer_unscramble",
     "hash",
     "komga",
     "metadata",

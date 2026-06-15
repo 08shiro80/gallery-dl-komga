@@ -228,10 +228,16 @@ class Extractor():
                 msg = f"'{code} {response.reason}' for '{response.url}'"
 
                 challenge = util.detect_challenge(response)
+                # A Cloudflare 403/503 is not always tagged with the body markers
+                # detect_challenge() looks for (newer managed-challenge pages omit
+                # _cf_chl_opt / jschl-answer). When FlareSolverr is armed, route any
+                # Cloudflare 403/503 through it instead of failing the request.
+                cf_block = (code in (403, 503) and response.headers.get(
+                    "server", "").startswith("cloudflare"))
+                if use_fs and (challenge is not None or cf_block):
+                    return self._request_flaresolverr(
+                        url, fatal=fatal, notfound=notfound)
                 if challenge is not None:
-                    if use_fs:
-                        return self._request_flaresolverr(
-                            url, fatal=fatal, notfound=notfound)
                     self.log.warning(challenge)
 
                 if code == 429 and self._handle_429(response):

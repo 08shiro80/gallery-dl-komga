@@ -92,7 +92,7 @@ class RawkumaMangaExtractor(RawkumaBase, MangaExtractor):
                 "manga"        : manga,
                 "manga_id"     : manga_id,
                 "chapter"      : text.parse_int(chapter),
-                "chapter-minor": sep + minor,
+                "chapter_minor": sep + minor,
                 "chapter_id"   : text.parse_int(chapter_id),
             }))
         return results
