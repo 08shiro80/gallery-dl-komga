@@ -6,7 +6,30 @@ This fork pins the upstream version string (`1.32.1`) and tracks itself by date 
 
 ---
 
-## Unreleased (in development on `master`)
+## Unreleased — cubari.moe extractor (2026-07-02, uncommitted)
+
+### `feat(extractor/cubari): add cubari.moe reader extractor`
+
+New `extractor/cubari.py` (auto-discovered, no `__init__.py` edit). Reads any cubari.moe hosted series via its series API `https://cubari.moe/read/api/<source>/series/<slug>/` — source-agnostic (catbox, gist, imgur, …), so a single extractor covers all cubari backends.
+
+- `CubariMangaExtractor` — pattern `.../read/<source>/<slug>/`, queues all chapters sorted by number.
+- `CubariChapterExtractor` — pattern `.../read/<source>/<slug>/<chapter>[/<page>]`, resolves page URLs from the chapter's first `groups` entry. That value is either a direct list of image URLs (catbox/gist) or a proxy path string (`/proxy/...`) that is fetched to obtain the list; list items may be plain URL strings or `{"src": …}` objects — both handled.
+- Metadata for `komga`-PP: `manga`, `manga_id`, `manga_url`, `title`, `description`, `author`/`artist` (literal `"Unknown"` stripped to `None`), `cover`, `chapter`/`chapter_minor` (parsed from the chapter key, e.g. `1.5` → `1` + `.5`), `volume`, `chapter_id`, `chapter_url`, `count`, `date` (from `last_updated` unix ts via `self.parse_timestamp`, `None` if absent), `lang="en"`.
+- Verified end-to-end against `catbox/te6r8z` (25 pages, real download + correct ComicInfo-relevant fields).
+
+---
+
+## Unreleased — Komga multi-source progress integration (2026-06-16, uncommitted)
+
+### `feat(postprocessor/komga): emit per-chapter progress marker on stdout`
+
+The `komga` postprocessor now prints a stable `[komga] chapter-complete` line once per finished chapter directory — via a `post-after` hook (fires when gallery-dl switches to the next chapter dir) plus the existing `finalize` hook for the last chapter (dedup via a seen-set keyed on the chapter dir). Komga's non-MangaDex single-download path counts these markers for real chapter progress instead of guessing from page/file paths (which over-counted, e.g. "15 / 1" on a multi-source resume). Emitted on every download path but only that parser reads it; any other consumer just sees a log line.
+
+Paired with komga-fork `GalleryDlWrapper.kt` — both repos must deploy together, and the marker string must stay identical in both.
+
+---
+
+## Unreleased — batch `9337a9197` (committed, not pushed)
 
 ### `fix(extractor/common): route any Cloudflare 403/503 through FlareSolverr`
 

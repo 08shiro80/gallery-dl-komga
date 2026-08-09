@@ -24,9 +24,11 @@ class KomgaPP(PostProcessor):
         self._write_comic_info = options.get("comic-info", True)
         self._write_series = options.get("series-json", True)
         self._dir_meta = {}
+        self._progress_dirs = set()
         self._extractor = job.extractor
 
         job.register_hooks({"file": self._on_file}, options)
+        job.hooks["post-after"].append(self._emit_chapter_progress)
         job.hooks["finalize"].append(self._finalize)
 
     def _on_file(self, pathfmt):
@@ -35,7 +37,21 @@ class KomgaPP(PostProcessor):
         dirpath = pathfmt.realdirectory.rstrip("/\\")
         self._dir_meta[dirpath] = pathfmt.kwdict
 
+    def _emit_chapter_progress(self, pathfmt):
+        # post-after fires when a chapter directory is finished (on switch to the
+        # next one). Emit one stable marker per manga chapter dir so Komga can count
+        # completed chapters live instead of guessing from page/file paths.
+        dirpath = pathfmt.realdirectory.rstrip("/\\")
+        if dirpath in self._dir_meta and dirpath not in self._progress_dirs:
+            self._progress_dirs.add(dirpath)
+            print("[komga] chapter-complete", flush=True)
+
     def _finalize(self, pathfmt):
+        # the last chapter never sees a post-after directory switch — emit its marker here
+        for dirpath in self._dir_meta:
+            if dirpath not in self._progress_dirs:
+                self._progress_dirs.add(dirpath)
+                print("[komga] chapter-complete", flush=True)
         written_series = set()
         for dirpath, meta in self._dir_meta.items():
             cbz = dirpath + "." + self._extension
